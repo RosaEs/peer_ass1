@@ -1,0 +1,120 @@
+# Reproducible Research: Peer Assessment 1
+
+
+## Loading and preprocessing the data
+The zip data has been downloaded from [the Reproducible Research Coursera course][data]
+
+[data]: https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip
+
+```{r}
+setwd("C:/Users/Rosa/Data Science Specialization/Reproducible research/peer_ass1/repdata_data_activity")
+data <- read.csv(file = "activity.csv", colClasses = c("integer", "Date", "integer"))
+attach(data)
+summary(data)
+```
+
+## What is mean total number of steps taken per day?
+1.Histogram of total number of steps
+
+```{r fig.height=4, fig.width= 4}
+stepsPerDay <- aggregate(steps ~ date, data, sum, na.rm = TRUE)$steps
+hist(stepsPerDay,xlab ="Steps per day")
+```
+
+2.Calculate and report the mean and median total number of steps taken per day
+
+The Mean number of steps per day is:
+```{r}
+mean(stepsPerDay)
+```
+
+The Median number of steps per day is:
+```{r}
+median(stepsPerDay)
+```
+
+## What is the average daily activity pattern?
+1.Time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r fig.height=4, fig.width= 4}
+stepsByInterval <- aggregate(steps ~ interval, data, mean)
+plot(stepsByInterval$steps, type = "l",xlab ="Interval", ylab="Average daily steps")
+```
+
+2.The highest mean steps and the interval with the maximum number of steps
+
+```{r}
+maxInterval = which.max(stepsByInterval$steps)
+maxInterval
+stepsByInterval$interval[maxInterval]
+stepsByInterval$steps[maxInterval]
+```
+
+## Imputing missing values
+
+1.Number of missing rows
+
+```{r}
+missingRows<-sum(is.na(steps))
+missingRows
+```
+
+2.Strategy for filling in all of the missing values  
+3.Create new dataset with the missing values filled in with the average number of steps from the corresponding interval. 
+
+```{r}
+newdata<-data
+
+for (i in 1:length(newdata$interval)) {
+    if(is.na(newdata$steps[i])){
+    newdata$steps[i] <- stepsByInterval[which(stepsByInterval$interval == newdata$interval[i]), ]$steps
+    }
+    else
+    newdata$steps[i] <-newdata$steps[i]
+}
+```
+4.Histogram of total number of steps per day with missing data filled in
+
+```{r fig.height=4, fig.width= 4}
+NewStepsPerDay <- aggregate(steps ~ date, newdata, sum)$steps
+hist(NewStepsPerDay)
+```
+
+New mean with missing data filled in
+```{r}
+mean(NewStepsPerDay)
+```
+
+New median with missing data filled in
+```{r}
+median(NewStepsPerDay)
+```
+
+The values are slightly higher with the data filled in.
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+1.Create new factor with 2 levels: "weekday" and "weekend"
+```{r}
+for(i in 1:length(newdata$interval)){
+  if(weekdays(newdata$date[i]) == "Saturday" | weekdays(newdata$date[i]) == "Sunday" ){newdata$typeDay[i]<-"weekend"}
+  else {newdata$typeDay[i]<-"weekday"}
+}
+newdata$typeDay <- factor(newdata$typeDay)
+```
+
+2.Panel plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekdays or weekendays(y-axis)
+
+
+```{r fig.height=4, fig.width= 12}
+weekdayActivities <- aggregate(steps ~ typeDay + interval, newdata, mean)
+weekendAct<-subset(weekdayActivities,typeDay=="weekend")
+weekdayAct<-subset(weekdayActivities,typeDay=="weekday")
+summary(weekdayAct)
+summary(weekendAct)
+
+library(lattice)
+xyplot(steps ~ interval | typeDay, data= weekdayActivities, type="l", xlab ="Interval", ylab="Average number of steps", main= "Activity weekdays vs weekends")
+```
+
+The subject weekend activity mean is 42.366 higher than the mean in weekday that is 35.611. So the subject seems to walk more on the weekend. However the maximun value of steps is in weekday 230.378. 
+
